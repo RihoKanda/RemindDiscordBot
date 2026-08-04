@@ -76,4 +76,5 @@ func executeReminder(dg *discordgo.Session, calSrv *calendar.Service, cfg *Confi
 		return err
 	}
 	log.Printf("リマインドを送信しました(%d件の予定)\n", len(events))
+	return nil
 }
