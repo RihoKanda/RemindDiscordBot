@@ -9,6 +9,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// Botの動作に必要な設定のまとめ
 type Config struct {
 	DiscordBotToken  string // DiscordBotのとーくん
 	DiscordChannelID string // リマインドを投稿するチャンネルID
@@ -19,7 +20,9 @@ type Config struct {
 	TokenPath        string // 取得したOAuth2トークンの保存先パス
 }
 
+// .envと環境変数から設定の読み込み
 func LoadConfig() (*Config, error) {
+	// .envファイルがあれば読み込む
 	if err := godotenv.Load(); err != nil {
 		log.Println(".env ファイルがないよ　環境変数から読み込むよ")
 	}
