@@ -8,7 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-func SendReminder(session *discordgo.Session, channelID string, events []CalenderEvent, targetDate  time.Time) error {
+func SendReminder(session *discordgo.Session, channelID string, events []CalenderEvent, targetDate time.Time) error {
 	embed := &discordgo.MessageEmbed{
 		Title: fmt.Sprintf("📅 明日 (%s) の予定", targetDate.Format("2006/01/02 (Mon)")),
 		Color: 0x4285F4,
@@ -18,7 +18,7 @@ func SendReminder(session *discordgo.Session, channelID string, events []Calende
 		embed.Description = "明日の予定はありません"
 	} else {
 		var sb strings.Builder
-		for _, e := renge events {
+		for _, e := range events {
 			if e.AllDay {
 				sb.WriteString(fmt.Sprintf("• **終日** %s\n", e.Summary))
 			} else {
