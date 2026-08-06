@@ -11,13 +11,12 @@ import (
 
 // Botの動作に必要な設定のまとめ
 type Config struct {
-	DiscordBotToken  string // DiscordBotのとーくん
-	DiscordChannelID string // リマインドを投稿するチャンネルID
-	GoogleCalendarID string // 対象のGoogleカレンダーID
-	RemindHour       int    // リマインドを実行する時刻　0-23
-	RemindMinute     int    // リマインドを実行する時刻　0-59
-	CredentialsPath  string // GoogleOAuth2 jsonのパス
-	TokenPath        string // 取得したOAuth2トークンの保存先パス
+	DiscordWebhookURL string // Discord WebhookのURL
+	GoogleCalendarID  string // 対象のGoogleカレンダーID
+	RemindHour        int    // リマインドを実行する時刻　0-23
+	RemindMinute      int    // リマインドを実行する時刻　0-59
+	CredentialsPath   string // GoogleOAuth2 jsonのパス
+	TokenPath         string // 取得したOAuth2トークンの保存先パス
 }
 
 // .envと環境変数から設定の読み込み
@@ -28,11 +27,10 @@ func LoadConfig() (*Config, error) {
 	}
 
 	cfg := &Config{
-		DiscordBotToken:  os.Getenv("DISCORD_BOT_TOKEN"),
-		DiscordChannelID: os.Getenv("DISCORD_CHANNEL_ID"),
-		GoogleCalendarID: getEnvOrDefault("GOOGLE_CALENDAR_ID", "primary"),
-		CredentialsPath:  getEnvOrDefault("GOOGLE_CREDENTIALS_PATH", "credentials.json"),
-		TokenPath:        getEnvOrDefault("GOOGLE_TOKEN_PATH", "token.json"),
+		DiscordWebhookURL: os.Getenv("DISCORD_WEBHOOK_URL"),
+		GoogleCalendarID:  getEnvOrDefault("GOOGLE_CALENDAR_ID", "primary"),
+		CredentialsPath:   getEnvOrDefault("GOOGLE_CREDENTIALS_PATH", "credentials.json"),
+		TokenPath:         getEnvOrDefault("GOOGLE_TOKEN_PATH", "token.json"),
 	}
 
 	hourStr := getEnvOrDefault("REMIND_HOUR", "20")
@@ -49,11 +47,8 @@ func LoadConfig() (*Config, error) {
 	cfg.RemindHour = hour
 	cfg.RemindMinute = minute
 
-	if cfg.DiscordBotToken == "" {
-		return nil, fmt.Errorf("DISCORD_BOT_TOKEN が設定されていないよ")
-	}
-	if cfg.DiscordChannelID == "" {
-		return nil, fmt.Errorf("DISCORD_CHANNEL_ID が設定されていないよ")
+	if cfg.DiscordWebhookURL == "" {
+		return nil, fmt.Errorf("DISCORD_WEBHOOK_URL が設定されていないよ")
 	}
 
 	return cfg, nil
