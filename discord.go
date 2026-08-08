@@ -19,7 +19,7 @@ type webhookPayload struct {
 	Embeds []webhookEmbed `json:"embeds"`
 }
 
-func SendReminder(webhookURL string, events []CalenderEvent, targetDate time.Time) error {
+func SendReminder(webhookURL string, events []CalendarEvent, targetDate time.Time) error {
 	embed := webhookEmbed{
 		Title: fmt.Sprintf("📅 明日 (%s) の予定", targetDate.Format("2006-01-02 (Mon)")),
 		Color: 0x4285F4,
