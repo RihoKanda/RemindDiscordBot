@@ -1,91 +1,101 @@
-# Discord Calendar Reminder Bot
+# RemindDiscordBot
 
-Googleカレンダーの「明日の予定」を、毎日決まった時刻にDiscordの指定チャンネルへ通知するBotです。
+Googleカレンダーの「明日の予定」を、毎日決まった時刻にDiscordの指定チャンネルへ自動通知するBotです。
+OAuth認証やDiscord Botの作成は不要で、Googleカレンダーの「秘密のiCalアドレス」とDiscordの「Webhook」だけで動きます。
 
-## 機能
+## 特徴
 
-- Google Calendar (OAuth2、自分のアカウント) から翌日の予定を取得
-- 毎日指定した時刻に、常駐プロセス内のタイマーで自動実行
-- Discordの指定チャンネルにEmbed形式で投稿
+- **OAuth認証なし**: GoogleカレンダーのシークレットiCalアドレス(読み取り専用URL)から予定を取得
+- **Discord Bot不要**: Webhook経由でJSONを送信するだけ
+- **常駐プロセス不要**: Windowsタスクスケジューラで毎日1回起動→通知→終了
+- Go言語で実装
 
-## 事前準備
+## 動作の流れ
 
-### 1. Discord Botの作成
-
-1. [Discord Developer Portal](https://discord.com/developers/applications) で新しいアプリケーションを作成
-2. 「Bot」タブでBotを追加し、トークンを控える(`DISCORD_BOT_TOKEN`)
-3. 「OAuth2 > URL Generator」で `bot` スコープと `Send Messages` `Embed Links` 権限を選び、生成されたURLからサーバーに招待
-4. 投稿したいチャンネルを右クリック→「IDをコピー」(開発者モードを事前にON) → `DISCORD_CHANNEL_ID`
-
-### 2. Google Calendar APIの有効化 & OAuth2クライアント作成
-
-1. [Google Cloud Console](https://console.cloud.google.com/) でプロジェクトを作成
-2. 「APIとサービス」→「ライブラリ」から **Google Calendar API** を有効化
-3. 「APIとサービス」→「認証情報」→「認証情報を作成」→「OAuthクライアントID」
-   - アプリケーションの種類は **デスクトップアプリ** を選択
-4. 作成後、JSONをダウンロードし `credentials.json` としてプロジェクト直下に配置
-   - OAuth同意画面でテストユーザーとして自分のGoogleアカウントを追加しておく(公開未申請の場合)
-
-### 3. 環境変数の設定
-
-```bash
-cp .env.example .env
-# .env を開いて DISCORD_BOT_TOKEN, DISCORD_CHANNEL_ID などを設定
-```
-
-## セットアップ & 実行
-
-```bash
-go mod tidy
-go run .
-```
-
-初回起動時、ターミナルに認証用URLが表示されます。ブラウザで開いてGoogleアカウントでログイン・許可すると認可コードが表示されるので、それをターミナルに貼り付けてください。以後は `token.json` に保存され、自動でリフレッシュされます。
-
-## ビルドして常駐させる例
-
-```bash
-go build -o calendar-reminder .
-./calendar-reminder
-```
-
-Linuxサーバーで永続化する場合は `systemd` のserviceファイルにするか、`tmux`/`screen` 等で常駐させてください。
-
-### systemd の例
-
-```ini
-[Unit]
-Description=Discord Calendar Reminder Bot
-After=network.target
-
-[Service]
-WorkingDirectory=/path/to/discord-calendar-reminder
-ExecStart=/path/to/discord-calendar-reminder/calendar-reminder
-Restart=always
-EnvironmentFile=/path/to/discord-calendar-reminder/.env
-
-[Install]
-WantedBy=multi-user.target
-```
+1. タスクスケジューラが毎日指定時刻に 指定した.exe を起動
+2. `.envファイル` の `ICAL_URL` から明日1日分の予定を取得
+3. 取得した予定をDiscordの `DISCORD_WEBHOOK_URL` へEmbed形式で送信
+4. 送信が終わるとプロセスは終了(次の起動までは何もしない)
 
 ## ディレクトリ構成
 
 ```
-.
-├── main.go       # エントリポイント・スケジューラ
-├── config.go     # 環境変数の読み込み
-├── calendar.go   # Google Calendar OAuth2認証・予定取得
-├── discord.go    # Discordへの投稿処理
+RemindDiscordBot/
+├── main.go       # エントリポイント(取得→送信→終了)
+├── config.go     # .env の読み込み
+├── calendar.go   # iCal取得・パース、明日の予定抽出
+├── discord.go    # Discord Webhookへの送信
 ├── go.mod
-├── .env.example
-├── credentials.json
-└── token.json
+├── .env          # 実際の設定値
+└── RemindDiscordBot.exe  # ビルド後の実行ファイル
 ```
 
-`.gitignore` に `credentials.json` `token.json` `.env` を追加
 
-## カスタマイズ
+## 以下は今後の開発時に迷わないように記録
 
-- **複数カレンダーに対応したい場合**: `GOOGLE_CALENDAR_ID` をカンマ区切りにして `main.go` でループする形に拡張可能
-- **DMにも送りたい場合**: `discord.go` に `session.UserChannelCreate(userID)` でDMチャンネルを作成し送信する処理を追加
-- **当日の予定も通知したい場合**: `calendar.go` の `GetTomorrowEvents` を汎用化し、日付オフセットを引数化す
+## 事前準備
+
+### 1. Googleカレンダーの「シークレットiCalアドレス」を取得
+
+1. Googleカレンダーの設定(歯車アイコン)→「設定」を開く
+2. 左メニューから通知したいカレンダーを選択
+3. 「カレンダーの統合」セクションまでスクロール
+4. **「予定のシークレットアドレス」**(iCal形式)のURLをコピー
+   - 形式例: `https://calendar.google.com/calendar/ical/xxxxx%40gmail.com/private-yyyyy/basic.ics`
+
+
+### 2. Discord Webhookを作成
+
+1. 通知したいチャンネルの設定(歯車アイコン)を開く
+2. 「連携サービス」→「ウェブフック」→「新しいウェブフック」
+3. 名前・アイコンは任意で設定
+4. 「ウェブフックURLをコピー」
+
+## セットアップ(VS Code / GUI操作のみ)
+
+### 1. Go拡張機能の準備
+
+VS Codeに拡張機能「Go」(`golang.go`)をインストールし、コマンドパレット(`Ctrl+Shift+P`)から「Go: Install/Update Tools」を実行しておく。
+
+### 2. `.env` ファイルを作成
+
+プロジェクト直下に `.env` を作成し、取得した2つのURLを記入する。
+
+```env
+ICAL_URL=ここにGoogleカレンダーのシークレットアドレスを貼る
+DISCORD_WEBHOOK_URL=ここにDiscordのWebhook URLを貼る
+```
+
+### 3. 依存関係の取得
+
+`go.mod` を保存すると画面右下に通知が出るので、「Run go mod tidy」をクリックする。
+
+### 4. 動作確認
+
+左サイドバーの「実行とデバッグ」パネル(`Ctrl+Shift+D`)→ 緑色の▷ボタンをクリック。
+デバッグコンソールに `リマインドを送信しました(n件の予定)` と表示され、Discordに通知が届けば成功。
+
+### 5. exeファイルをビルド
+
+コマンドパレット(`Ctrl+Shift+P`)→「Go: Build Workspace」を実行すると、プロジェクト直下に `RemindDiscordBot.exe` が生成される。
+
+## 毎日自動実行する設定(Windowsタスクスケジューラ)
+
+1. スタートメニューで「タスクスケジューラ」を検索して起動
+2. 「基本タスクの作成」→ 名前を入力(例: `Discord Calendar Reminder`)
+3. トリガー: 「毎日」→ 実行したい時刻を設定(例: 20:00)
+4. 操作: 「プログラムの開始」→ 「参照」で `RemindDiscordBot.exe` を選択
+5. **「開始(オプション)」欄にプロジェクトフォルダのパスを入力**(`.env` を読み込むために必須)
+6. 「完了」
+
+作成後、タスク一覧から右クリック→「実行」で手動テストできる。
+
+### PCがスリープする場合の対策
+
+タスク右クリック→「プロパティ」→「条件」タブ→「コンピューターをスリープ解除してタスクを実行する」にチェックを入れると、スリープ中でも指定時刻に実行される。
+
+## 注意点・既知の制限
+
+- **iCal反映のタイムラグ**: Googleカレンダー側で予定を追加・変更してから、シークレットアドレスに反映されるまで数分〜十数分かかることがある
+- **PCの電源**: タスクスケジューラはPCが起動していないと実行されない。通知時刻に必ず起動しておく必要がある
+- **`.env` の管理**: `ICAL_URL` と `DISCORD_WEBHOOK_URL` は他人に知られると予定の閲覧・チャンネルへの投稿ができてしまうため、Gitにコミットしない・共有しないこと
