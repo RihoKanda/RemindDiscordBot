@@ -17,8 +17,8 @@ jobs:
         with:
           go-version: '1.22'
 
+      - name: Write .env file
+        run: echo "${{ secrets.ENV_FILE }}" > .env
+
       - name: Run reminder
-        env:
-          ICAL_URL: ${{ secrets.ICAL_URL }}
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: go run .
